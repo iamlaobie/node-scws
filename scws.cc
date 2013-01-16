@@ -13,7 +13,11 @@ Handle<Value> addDict(const Arguments& args){
   HandleScope scope;
   Handle<Value> arg0 = args[0];
   String::Utf8Value dict(arg0);
-  scws_add_dict(scws, *dict, SCWS_XDICT_MEM);
+  if (strstr(*dict, "xdb")) {
+    scws_add_dict(scws, *dict, SCWS_XDICT_MEM);
+  } else {
+    scws_add_dict(scws, *dict, SCWS_XDICT_TXT);
+  }
   return scope.Close(Undefined());
 }
 
@@ -21,7 +25,11 @@ Handle<Value> setDict(const Arguments& args){
   HandleScope scope;
   Handle<Value> arg0 = args[0];
   String::Utf8Value dict(arg0);
-  scws_set_dict(scws, *dict, SCWS_XDICT_MEM);
+  if (strstr(*dict, "xdb")) {
+    scws_set_dict(scws, *dict, SCWS_XDICT_MEM);
+  } else {
+    scws_set_dict(scws, *dict, SCWS_XDICT_TXT);
+  }
   return scope.Close(Undefined());
 }
 
