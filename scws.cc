@@ -76,6 +76,39 @@ Handle<Value> segment(const Arguments& args) {
     return scope.Close(tops);
 }
 
+Handle<Value> serialize(const Arguments& args) {
+  HandleScope scope;
+  scws_res_t res, cur;
+  Handle<Value> arg0 = args[0];
+  String::Utf8Value txt(arg0);
+  int txtLen = strlen(*txt);
+  scws_send_text(scws, *txt, txtLen);
+  Local<Array> words = Array::New();
+  int index = 0;
+  while ((res = cur = scws_get_result(scws)))
+  {
+    while (cur != NULL)
+    {
+      Local<Object> word = Object::New();
+      word->Set(String::NewSymbol("word"), String::New(*txt + cur->off, cur->len));
+      if(cur->attr[1] == '\0'){
+        word->Set(String::NewSymbol("attr"), String::New(cur->attr, 1));
+      }else{
+        word->Set(String::NewSymbol("attr"), String::New(cur->attr, 2));
+      }
+      word->Set(String::NewSymbol("idf"), Number::New(cur->idf));
+      words->Set(index, word);
+      //printf("WORD: %.*s/%s (IDF = %4.2f)\n", cur->len, text+cur->off, cur->attr, cur->idf);
+      cur = cur->next;
+      index ++;
+      
+    }
+    scws_free_result(res);
+    scws_free_result(cur);
+  }
+  return scope.Close(words);
+}
+
 void Init(Handle<Object> target) {
   if (!(scws = scws_new())) {
       ThrowException(Exception::TypeError(String::New("initial failure")));
@@ -89,5 +122,6 @@ void Init(Handle<Object> target) {
       FunctionTemplate::New(setMulti)->GetFunction());
   target->Set(String::NewSymbol("segment"),                                                                                                                                                        
       FunctionTemplate::New(segment)->GetFunction());                                                                                                                                        
+  target->Set(String::NewSymbol("serialize"),                                                                                                                                                             FunctionTemplate::New(serialize)->GetFunction());                                                                                                                                        
 }
 NODE_MODULE(nscws, Init)  
