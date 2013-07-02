@@ -130,6 +130,9 @@ void Init(Handle<Object> target) {
       FunctionTemplate::New(setMulti)->GetFunction());
   target->Set(String::NewSymbol("segment"),                                                                                                                                                        
       FunctionTemplate::New(segment)->GetFunction());                                                                                                                                        
-  target->Set(String::NewSymbol("serialize"),                                                                                                                                                             FunctionTemplate::New(serialize)->GetFunction());                                                                                                                                        
+  target->Set(String::NewSymbol("serialize"),
+      FunctionTemplate::New(serialize)->GetFunction());                                                                                                                                        
+  target->Set(String::NewSymbol("setRule"),
+      FunctionTemplate::New(setRule)->GetFunction());                                                                                                                                        
 }
 NODE_MODULE(nscws, Init)  
