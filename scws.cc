@@ -44,6 +44,14 @@ Handle<Value> setMulti(const Arguments& args){
   return scope.Close(Undefined());
 }
 
+Handle<Value> setRule(const Arguments& args){
+  HandleScope scope;
+  Handle<Value> arg0 = args[0];
+  String::Utf8Value rule(arg0);
+  scws_set_rule(scws, *rule);
+  return scope.Close(Undefined());
+}
+
 Handle<Value> segment(const Arguments& args) {
     HandleScope scope;
     scws_top_t res, cur;
