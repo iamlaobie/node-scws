@@ -6,59 +6,79 @@
 #include <node.h>
 #include <scws/scws.h>
 using namespace v8;
+using namespace node;
 
-scws_t scws;
+class Scws: ObjectWrap {
+  public :
+    scws_t scws;
+    Scws () {
+      scws = scws_new();
+      scws_set_charset(scws, "utf8");
+    }
+    ~Scws () {
+      scws_free(scws);
+    }
+    static void Init();
+    static v8::Handle<v8::Value> NewInstance(const v8::Arguments& args);
+    static v8::Persistent<v8::Function> constructor;
+    static v8::Handle<v8::Value> New(const v8::Arguments& args);
 
-Handle<Value> addDict(const Arguments& args){
+static Handle<Value> addDict(const Arguments& args){
   HandleScope scope;
+  Scws *scws = ObjectWrap::Unwrap<Scws>(args.This());
   Handle<Value> arg0 = args[0];
   String::Utf8Value dict(arg0);
   if (strstr(*dict, "xdb")) {
-    scws_add_dict(scws, *dict, SCWS_XDICT_MEM);
+    scws_add_dict(scws->scws, *dict, SCWS_XDICT_MEM);
   } else {
-    scws_add_dict(scws, *dict, SCWS_XDICT_TXT);
+    scws_add_dict(scws->scws, *dict, SCWS_XDICT_TXT);
   }
   return scope.Close(Undefined());
 }
 
-Handle<Value> setDict(const Arguments& args){
+static Handle<Value> setDict(const Arguments& args){
   HandleScope scope;
+  Scws *scws = ObjectWrap::Unwrap<Scws>(args.This());
   Handle<Value> arg0 = args[0];
   String::Utf8Value dict(arg0);
   if (strstr(*dict, "xdb")) {
-    scws_set_dict(scws, *dict, SCWS_XDICT_MEM);
+    scws_set_dict(scws->scws, *dict, SCWS_XDICT_MEM);
   } else {
-    scws_set_dict(scws, *dict, SCWS_XDICT_TXT);
+    scws_set_dict(scws->scws, *dict, SCWS_XDICT_TXT);
   }
   return scope.Close(Undefined());
 }
 
-Handle<Value> setMulti(const Arguments& args){
-  HandleScope scope;
+static Handle<Value> setMulti(const Arguments& args){
+  HandleScope scope; 
+  Scws *scws = ObjectWrap::Unwrap<Scws>(args.This());
   int multi = args[0]->NumberValue();
   if (multi == 1) {
-    scws_set_multi(scws, SCWS_MULTI_SHORT);
+    scws_set_multi(scws->scws, SCWS_MULTI_SHORT);
   } else {
-    scws_set_multi(scws, 0);
+    scws_set_multi(scws->scws, 0);
   }
   return scope.Close(Undefined());
 }
 
-Handle<Value> setRule(const Arguments& args){
+static Handle<Value> setRule(const Arguments& args){
   HandleScope scope;
+  Scws *scws = ObjectWrap::Unwrap<Scws>(args.This());
   Handle<Value> arg0 = args[0];
   String::Utf8Value rule(arg0);
-  scws_set_rule(scws, *rule);
+  scws_set_rule(scws->scws, *rule);
   return scope.Close(Undefined());
 }
 
-Handle<Value> segment(const Arguments& args) {
+static Handle<Value> segment(const Arguments& args) {
     HandleScope scope;
+    Scws *scwsObj = ObjectWrap::Unwrap<Scws>(args.This());
     scws_top_t res, cur;
     Handle<Value> arg0 = args[0];
     String::Utf8Value txt(arg0);
     int limit = args[1]->NumberValue();
 
+    scws_t scws = scwsObj->scws;
     int txtLen = strlen(*txt);
     scws_send_text(scws, *txt, txtLen);
     Local<Array> tops = Array::New();
@@ -84,8 +104,10 @@ Handle<Value> segment(const Arguments& args) {
     return scope.Close(tops);
 }
 
-Handle<Value> serialize(const Arguments& args) {
+static Handle<Value> serialize(const Arguments& args) {
   HandleScope scope;
+  Scws *scwsObj = ObjectWrap::Unwrap<Scws>(args.This());
+  scws_t scws = scwsObj->scws;
   scws_res_t res, cur;
   Handle<Value> arg0 = args[0];
   String::Utf8Value txt(arg0);
@@ -117,22 +139,47 @@ Handle<Value> serialize(const Arguments& args) {
   return scope.Close(words);
 }
 
-void Init(Handle<Object> target) {
-  if (!(scws = scws_new())) {
-      ThrowException(Exception::TypeError(String::New("initial failure")));
-  }
-  scws_set_charset(scws, "utf8");
-  target->Set(String::NewSymbol("addDict"),
-      FunctionTemplate::New(addDict)->GetFunction());
-  target->Set(String::NewSymbol("setDict"),
-      FunctionTemplate::New(setDict)->GetFunction());
-  target->Set(String::NewSymbol("setMulti"),
-      FunctionTemplate::New(setMulti)->GetFunction());
-  target->Set(String::NewSymbol("segment"),                                                                                                                                                        
-      FunctionTemplate::New(segment)->GetFunction());                                                                                                                                        
-  target->Set(String::NewSymbol("serialize"),
-      FunctionTemplate::New(serialize)->GetFunction());                                                                                                                                        
-  target->Set(String::NewSymbol("setRule"),
-      FunctionTemplate::New(setRule)->GetFunction());                                                                                                                                        
+};
+
+Persistent<Function> Scws::constructor;
+
+void Scws::Init() {
+  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
+  tpl->SetClassName(String::NewSymbol("MyObject"));
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  constructor = Persistent<Function>::New(tpl->GetFunction());
 }
-NODE_MODULE(nscws, Init)  
+
+Handle<Value> Scws::New(const Arguments& args) {
+  HandleScope scope;
+  Scws* obj = new Scws();
+  obj->Wrap(args.This());
+  return args.This();
+}
+
+Handle<Value> Scws::NewInstance(const Arguments& args) {
+  HandleScope scope;
+  Local<Object> instance = constructor->NewInstance();
+  instance->Set(String::NewSymbol("setRule"), FunctionTemplate::New(setRule)->GetFunction());
+  instance->Set(String::NewSymbol("setMulti"), FunctionTemplate::New(setMulti)->GetFunction());
+  instance->Set(String::NewSymbol("setDict"), FunctionTemplate::New(setDict)->GetFunction());
+  instance->Set(String::NewSymbol("addDict"), FunctionTemplate::New(addDict)->GetFunction());
+  instance->Set(String::NewSymbol("segment"), FunctionTemplate::New(segment)->GetFunction());
+  instance->Set(String::NewSymbol("serialize"), FunctionTemplate::New(serialize)->GetFunction());
+  return scope.Close(instance);
+}
+
+Handle<Value> CreateObject(const Arguments& args) {
+  HandleScope scope;
+  return scope.Close(Scws::NewInstance(args));
+}
+
+void InitAll(Handle<Object> exports) {
+  Scws::Init();
+  exports->Set(String::NewSymbol("createWorker"),
+      FunctionTemplate::New(CreateObject)->GetFunction());
+
+}
+
+NODE_MODULE(nscws, InitAll)

@@ -1,2 +1,4 @@
 var scws = require("./build/Release/nscws.node");
-module.exports = scws;
+var worker = scws.createWorker();
+worker.createWorker = scws.createWorker;
+module.exports = worker;
