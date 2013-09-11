@@ -76,10 +76,12 @@ static Handle<Value> segment(const Arguments& args) {
     scws_top_t res, cur;
     Handle<Value> arg0 = args[0];
     String::Utf8Value txt(arg0);
-    int limit = args[1]->NumberValue();
-
-    scws_t scws = scwsObj->scws;
     int txtLen = strlen(*txt);
+    int limit = txtLen;
+    if (args[1]->IsNumber()) {
+      limit = args[1]->NumberValue();
+    } 
+    scws_t scws = scwsObj->scws;
     scws_send_text(scws, *txt, txtLen);
     Local<Array> tops = Array::New();
     int index = 0;
